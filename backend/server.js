@@ -11,10 +11,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.post("/predict", async (req, res) => {
+app.post("/predict/:type", async (req, res) => {
+  const type = req.params.type;
+
   try {
     const response = await axios.post(
-      "http://localhost:8000/predict/heart",
+      `http://localhost:8000/predict/${type}`,
       req.body
     );
 
@@ -24,6 +26,7 @@ app.post("/predict", async (req, res) => {
     res.status(500).json({ error: "Prediction failed" });
   }
 });
+
 
 
 app.listen(5000, () => {

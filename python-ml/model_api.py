@@ -1,33 +1,26 @@
 from fastapi import FastAPI
 import joblib
 import pandas as pd
-from google import genai
-from google.genai import types
-import os
+
 from fastapi.middleware.cors import CORSMiddleware
 
 
-# Set API key
-client = genai.Client(api_key="AIzaSyAql63v7T8MJPvKfBGYBn6XECJrWnzg2C4")
 
-
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # your frontend
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-
+app=FastAPI()
 # ==============================
 # Load Models
 # ==============================
 heart_model = joblib.load("models/heart_model.pkl")
 scaler = joblib.load("models/scaler.pkl")
 feature_columns = joblib.load("models/feature_columns.pkl")
+
+# ==============================
+# Load Diabetes Model
+# ==============================
+diabetes_model = joblib.load("models/diabetes_model.pkl")
+diabetes_scaler = joblib.load("models/scaler.pkl")
+diabetes_features = joblib.load("models/feature_columns.pkl")
+
 
 
 # ==============================
@@ -202,18 +195,75 @@ def predict_heart(data: dict):
     }
 
 
+
 from pydantic import BaseModel
 
-class ChatRequest(BaseModel):
-    message: str   # must match frontend
+class DiabetesInput(BaseModel):
+    Pregnancies: int
+    Glucose: float
+    BloodPressure: float
+    SkinThickness: float
+    Insulin: float
+    BMI: float
+    DiabetesPedigreeFunction: float
+    Age: int
 
-@app.post("/chat")
-async def chat(data: ChatRequest):
-    user_message = data.message
 
-    response = client.models.generate_content(
-        model="gemini-1.5-flash",
-        contents=user_message
-    )
 
-    return {"reply": response.text}
+
+
+@app.post("/predict/diabetes")
+def predict_diabetes(data: dict):
+
+    full_data = {col: 0 for col in diabetes_features}
+
+    # Map incoming form fields to diabetes features
+    for key in data:
+        if key in full_data:
+            full_data[key] = data[key]
+
+    df = pd.DataFrame([full_data])
+    df_scaled = scaler.transform(df)
+
+    prediction = diabetes_model.predict(df_scaled)
+    probability = diabetes_model.predict_proba(df_scaled)
+
+    risk_percent = float(probability[0][1] * 100)
+    confidence = float(max(probability[0]) * 100)
+
+    # Simple risk category
+    if risk_percent < 30:
+        category = "Low"
+        color = "green"
+    elif risk_percent < 60:
+        category = "Moderate"
+        color = "orange"
+    else:
+        category = "High"
+        color = "red"
+
+    return {
+        "prediction": int(prediction[0]),
+        "risk_percent": round(risk_percent, 2),
+        "risk_category": category,
+        "risk_color": color,
+        "severity_text": f"{category} Diabetes Risk",
+        "confidence": round(confidence, 2),
+        "bmi": 0,
+        "health_score": round(100 - risk_percent, 2),
+        "health_level": category,
+        "lifestyle_score": 70,
+        "ideal_weight_range": {"min": 0, "max": 0},
+        "risk_factors": [],
+        "recommendations": []
+    }
+
+
+
+
+
+
+
+
+
+

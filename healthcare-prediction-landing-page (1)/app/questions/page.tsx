@@ -53,6 +53,9 @@ export default function QuestionsPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [modelType, setModelType] = useState("heart")
+
+
 
   const handleChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -61,55 +64,46 @@ export default function QuestionsPage() {
   
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitStatus("idle")
+  e.preventDefault()
+  setIsSubmitting(true)
+  setSubmitStatus("idle")
 
-   try {
-  const response = await fetch("http://localhost:5000/predict", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(formData),
-  })
+  try {
+    const response = await fetch(`http://localhost:5000/predict/${modelType}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    })
 
-  const data = await response.json()
-  console.log("data from api",data)
+    const data = await response.json()
+    console.log("data from api", data)
 
-  // 🚀 Redirect to dashboard
- 
+    const params = new URLSearchParams({
+      risk: String(data.risk_percent),
+      category: String(data.risk_category),
+      severity: String(data.severity_text),
+      bmi: String(data.bmi),
+      score: String(data.health_score),
+      confidence: String(data.confidence),
+      lifestyle: String(data.lifestyle_score),
+      healthLevel: String(data.health_level),
+      idealMin: String(data.ideal_weight_range?.min ?? ""),
+      idealMax: String(data.ideal_weight_range?.max ?? ""),
+      factors: data.risk_factors?.join(",") ?? "",
+      recommendations: data.recommendations?.join("|") ?? "",
+    })
 
-const params = new URLSearchParams({
-  risk: String(data.risk_percent),
-  category: String(data.risk_category),
-  severity: String(data.severity_text),
-  bmi: String(data.bmi),
-  score: String(data.health_score),
-  confidence: String(data.confidence),
-  lifestyle: String(data.lifestyle_score),
-  healthLevel: String(data.health_level),
-  idealMin: String(data.ideal_weight_range?.min ?? ""),
-  idealMax: String(data.ideal_weight_range?.max ?? ""),
-  factors: data.risk_factors?.join(",") ?? "",
-  recommendations: data.recommendations?.join("|") ?? ""
-})
+    router.push(`/dashboard?${params.toString()}`)
 
-router.push(`/dashboard?${params.toString()}`)
-
-
-router.push(`/dashboard?${params.toString()}`)
-
-
-
-} catch (error) {
-  console.error(error)
-}
-
-     finally {
-      setIsSubmitting(false)
-    }
+  } catch (error) {
+    console.error(error)
+    setSubmitStatus("error")
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,6 +116,19 @@ router.push(`/dashboard?${params.toString()}`)
             Fill out the form below to get an AI-powered health risk prediction.
           </p>
         </div>
+
+        <div className="mb-6">
+  <label className="block mb-2 font-medium">Select Prediction Type</label>
+  <select
+    value={modelType}
+    onChange={(e) => setModelType(e.target.value)}
+    className="border rounded px-4 py-2"
+  >
+    <option value="heart">Heart Disease</option>
+    <option value="diabetes">Diabetes</option>
+  </select>
+</div>
+
 
         <form onSubmit={handleSubmit} className="space-y-0">
           <div className="rounded-2xl bg-card p-6 shadow-sm sm:p-8">
