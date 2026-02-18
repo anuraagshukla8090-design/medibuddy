@@ -382,33 +382,8 @@ const askAI = async () => {
     </p>
   )}
 </div>
-//gemini
 
-<div className="bg-white rounded-xl shadow p-6 mt-8">
-  <h2 className="text-xl font-semibold mb-4">
-    AI Health Assistant 🤖
-  </h2>
 
-  <textarea
-    placeholder="Ask anything about your health report..."
-    className="w-full border rounded p-3 mb-4"
-    value={message}
-    onChange={(e) => setMessage(e.target.value)}
-  />
-
-  <button
-    onClick={askAI}
-    className="bg-purple-600 text-white px-6 py-2 rounded"
-  >
-    {loadingAI ? "Thinking..." : "Ask AI"}
-  </button>
-
-  {reply && (
-    <div className="mt-6 p-4 bg-gray-100 rounded">
-      <p>{reply}</p>
-    </div>
-  )}
-</div>
 
 
 
